@@ -1,2 +1,2 @@
 # Fake News Detection Benchmarking
-This project benchmarks different NLP models on various fake news datasets.
+This project benchmarks different various fake news datasets.
