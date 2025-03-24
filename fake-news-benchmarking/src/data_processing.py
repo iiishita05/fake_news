@@ -1,23 +1,59 @@
 import pandas as pd
-import re
-import nltk
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
+import os
 
-nltk.download('punkt')
-nltk.download('stopwords')
+# Define dataset folder path
+dataset_folder = "C:/Users/KIIT/Downloads/MINORR/fake_news/fake-news-benchmarking/datasets"
 
-def clean_text(text):
-    text = re.sub(r"http\S+|www\S+|https\S+", '', text)
-    text = re.sub(r'\W', ' ', text)
-    text = text.lower()
-    tokens = word_tokenize(text)
-    tokens = [word for word in tokens if word not in stopwords.words('english')]
-    return " ".join(tokens)
+# Check if dataset folder exists
+if not os.path.exists(dataset_folder):
+    print(f"❌ Error: Dataset folder '{dataset_folder}' not found!")
+    exit()
 
-def load_dataset(filepath):
-    df = pd.read_csv(filepath)
-    df = df[['text', 'label']]
-    df.dropna(inplace=True)
-    df['clean_text'] = df['text'].apply(clean_text)
-    return df
+# Function to load dataset files
+def load_data(file_path):
+    try:
+        if file_path.endswith(".csv"):
+            return pd.read_csv(file_path)
+        elif file_path.endswith(".tsv"):
+            return pd.read_csv(file_path, delimiter="\t")
+        elif file_path.endswith(".json"):
+            return pd.read_json(file_path)
+        else:
+            print(f"⚠️ Skipping unsupported file: {file_path}")
+            return None
+    except Exception as e:
+        print(f"❌ Error reading {file_path}: {e}")
+        return None
+
+# Function to preprocess dataset files
+def preprocess_data(dataset_folder):
+    all_files = []
+    
+    # Loop through dataset folder
+    for root, _, files in os.walk(dataset_folder):
+        for file in files:
+            file_path = os.path.join(root, file)
+            print(f"📂 Found file: {file_path}")  # Debug print
+
+            # Load data
+            df = load_data(file_path)
+            if df is not None:
+                all_files.append(df)
+
+    # Check if any files were loaded
+    if not all_files:
+        print("❌ No valid dataset files found! Check dataset folder path and file formats.")
+        exit()
+
+    # Print loaded file details
+    print(f"✅ Loaded {len(all_files)} files:")
+    for i, file in enumerate(all_files):
+        print(f"📄 File {i+1}: {file.shape}, Columns: {list(file.columns)}")
+
+    # Merge all data
+    full_df = pd.concat(all_files, ignore_index=True)
+    return full_df
+
+# Run preprocessing
+df = preprocess_data(dataset_folder)
+print("✅ Preprocessing complete. Final dataset shape:", df.shape)

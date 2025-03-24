@@ -1,40 +1,38 @@
-import matplotlib.pyplot as plt
-from train import train_model
-from data_processing import load_dataset
-from evaluate import evaluate_model
+import time
+import torch
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-DATASETS = {
-    "LIAR": "datasets/liar.csv",
-    "FakeNewsNet": "datasets/fakenewsnet.csv",
-    "COVID-19": "datasets/covid19_fake.csv",
-    "ISOT": "datasets/isot.csv",
-    "FEVER": "datasets/fever.csv"
-}
+MODEL_NAMES = [
+    "bert-base-uncased",
+    "roberta-base",
+    "distilbert-base-uncased"
+]
 
-MODELS = ["bert-base-uncased", "roberta-base", "distilbert-base"]
+def benchmark_model(model_name, text):
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+    
+    start_time = time.time()
+    with torch.no_grad():
+        outputs = model(**inputs)
+    end_time = time.time()
+    
+    return end_time - start_time
 
-results = {}
+def run_benchmark():
+    text = "The government has announced new policies to fight climate change."
 
-for model_name in MODELS:
-    for dataset_name, path in DATASETS.items():
-        print(f"Training {model_name} on {dataset_name}...")
-        df = load_dataset(path)
-        model = train_model(dataset_name, df)
-        trainer = model["trainer"]
-        test_dataset = model["test_dataset"]
-        test_labels = model["test_labels"]
-        
-        metrics = evaluate_model(trainer, test_dataset, test_labels)
-        results[(model_name, dataset_name)] = metrics
+    results = {}
+    for model_name in MODEL_NAMES:
+        print(f"Benchmarking {model_name}...")
+        exec_time = benchmark_model(model_name, text)
+        results[model_name] = exec_time
 
-plt.figure(figsize=(10, 5))
-for model_name in MODELS:
-    accuracy_scores = [results[(model_name, d)]["Accuracy"] for d in DATASETS.keys()]
-    plt.plot(DATASETS.keys(), accuracy_scores, marker='o', label=model_name)
+    print("\nBenchmark Results (Inference Time in Seconds):")
+    for model, time_taken in results.items():
+        print(f"{model}: {time_taken:.4f}s")
 
-plt.xlabel("Datasets")
-plt.ylabel("Accuracy")
-plt.title("Fake News Detection Model Benchmarking")
-plt.legend()
-plt.xticks(rotation=15)
-plt.show()
+if __name__ == "__main__":
+    run_benchmark()

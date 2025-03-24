@@ -1,7 +1,5 @@
-torch
 transformers
+torch
+pandas
 datasets
 scikit-learn
-pandas
-matplotlib
-nltk
